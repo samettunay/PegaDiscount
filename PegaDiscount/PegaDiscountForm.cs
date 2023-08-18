@@ -7,9 +7,8 @@ using System.Windows.Forms;
 using System.IO;
 using PegaDiscount.Models;
 using PegaDiscount.Helpers;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
+using System.Threading;
 
 namespace PageDiscount
 {
@@ -33,7 +32,7 @@ namespace PageDiscount
         private void PegaDiscountForm_Load(object sender, EventArgs e)
         {
             Task.Run(main);
-            //Thread.Sleep(1 * 60 * 1000);
+            //Thread.Sleep(_settingsModel.LoopTimeMinute * 60 * 1000);
         }
 
         private async Task main()

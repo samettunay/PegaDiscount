@@ -10,6 +10,7 @@ namespace PegaDiscount.Models
         public string DeparturePort { get; set; } = ConfigurationManager.AppSettings["departurePort"];
         public string ArrivalPort { get; set; } = ConfigurationManager.AppSettings["arrivalPort"];
         public string DepartureDate { get; set; } = ConfigurationManager.AppSettings["departureDate"];
+        public int LoopTimeMinute { get; set; } = Convert.ToInt32(ConfigurationManager.AppSettings["loopTimeMinute"]);
         public int SelectedPrice { get; set; } = Convert.ToInt32(ConfigurationManager.AppSettings["selectedPrice"]);
     }
 }
