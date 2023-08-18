@@ -9,6 +9,7 @@ using PegaDiscount.Models;
 using PegaDiscount.Helpers;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PageDiscount
 {
@@ -32,55 +33,48 @@ namespace PageDiscount
         private void PegaDiscountForm_Load(object sender, EventArgs e)
         {
             Task.Run(main);
-            Thread.Sleep(3000);
+            //Thread.Sleep(1 * 60 * 1000);
         }
 
         private async Task main()
         {
-            while (true)
-            {
-                IWebDriver driver = _driverHelper.CreateNewWebDriver();
-                driver.Navigate().GoToUrl(_url);
-                checkProperPrices(driver);
-            }
+            IWebDriver driver = _driverHelper.CreateNewWebDriver();
+            driver.Navigate().GoToUrl(_url);
+            checkProperPrices(driver);
         }
 
         private void checkProperPrices(IWebDriver driver)
         {
-            for (int i = 1; i <= 10; i++)
+            var calendarDays = driver.FindElements(By.CssSelector(".calendar-day-wrapper"));
+
+
+            foreach (var day in calendarDays)
             {
-                for (int j = 1; j <= 10; j++)
+                var amountElement = day.FindElements(By.ClassName("amount")).FirstOrDefault();
+                var dayElement = day.FindElements(By.ClassName("day")).FirstOrDefault();
+                if (amountElement != null && dayElement != null)
                 {
-                    try
+                    if (!string.IsNullOrEmpty(amountElement.Text))
                     {
-                        string priceText = driver.FindElement(By.XPath($"//*[@id=\"boarding-card-body\"]/div/div[3]/div[1]/div/div[2]/div[3]/div[1]/div/div/div/div[2]/div[2]/div/div[2]/div/table/tbody/tr[{i}]/td[{j}]/div/div[2]/div/span[1]")).Text;
-
-                        string dayText = driver.FindElement(By.XPath($"//*[@id=\"boarding-card-body\"]/div/div[3]/div[1]/div/div[2]/div[3]/div[1]/div/div/div/div[2]/div[2]/div/div[2]/div/table/tbody/tr[{i}]/td[{j}]/div/div[1]")).Text;
-
-                        int ticketPrice = Convert.ToInt32(priceText.Replace(",", "").Trim());
-                        int ticketDay = Convert.ToInt32(dayText.Trim());
+                        int ticketPrice = Convert.ToInt32(amountElement.Text.Replace(",", "").Trim());
+                        int ticketDay = Convert.ToInt32(dayElement.Text.Trim());
 
                         if (_settingsModel.SelectedPrice >= ticketPrice)
+
+                        if (!_ticketModels.Any(tm => tm.Day == ticketDay))
                         {
-                            if (!_ticketModels.Any(tm=>tm.Day == ticketDay))
+                            var newTicketModel = new TicketModel()
                             {
-                                var newTicketModel = new TicketModel()
-                                {
-                                    Day = ticketDay,
-                                    ArrivalPort = _settingsModel.ArrivalPort,
-                                    DeparturePort = _settingsModel.DeparturePort,
-                                    DepartureDate = _settingsModel.DepartureDate,
-                                    AdultCount = _settingsModel.AdultCount,
-                                    PriceStr = priceText
-                                };
-                                _ticketModels.Add(newTicketModel);
-                                showToastNotification(newTicketModel);
-                            }
+                                Day = ticketDay,
+                                ArrivalPort = _settingsModel.ArrivalPort,
+                                DeparturePort = _settingsModel.DeparturePort,
+                                DepartureDate = _settingsModel.DepartureDate,
+                                AdultCount = _settingsModel.AdultCount,
+                                PriceStr = amountElement.Text
+                            };
+                            _ticketModels.Add(newTicketModel);
+                            showToastNotification(newTicketModel);
                         }
-                    }
-                    catch (Exception)
-                    {
-                        // Element boş
                     }
                 }
             }
@@ -102,11 +96,6 @@ namespace PageDiscount
                 .AddAttributionText(ticket.DeparturePort + " to " + ticket.ArrivalPort)
                 .AddButton(button)
                 .Show();
-        }
-
-        private void hideThisForm(object sender, EventArgs e)
-        {
-            this.Hide();
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)

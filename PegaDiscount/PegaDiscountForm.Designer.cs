@@ -66,7 +66,6 @@
             this.Name = "PegaDiscountForm";
             this.Text = "PegaDiscount";
             this.Load += new System.EventHandler(this.PegaDiscountForm_Load);
-            this.Shown += new System.EventHandler(this.hideThisForm);
             this.contextMenuStrip1.ResumeLayout(false);
             this.ResumeLayout(false);
 
