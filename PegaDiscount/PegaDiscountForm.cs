@@ -64,8 +64,6 @@ namespace PageDiscount
                 var ticketAmount = day.FindElements(By.ClassName("amount")).FirstOrDefault();
                 var ticketDay = day.FindElements(By.ClassName("day")).FirstOrDefault();
 
-                
-
                 bool checkNullElements = ticketAmount != null && ticketDay != null;
                 bool isThereTicketModelInList = !_ticketModels.Any(tm => tm.Day == Convert.ToInt32(ticketDay.Text.Trim()));
 
@@ -84,6 +82,7 @@ namespace PageDiscount
         private void showToastNotification(TicketModel ticket)
         {
             string toastUrl = PegaUrlHelper.CreateUrl(ticket, false);
+
             ToastButton button = new ToastButton(Messages.ToastButtonText, toastUrl)
             {
                 ActivationType = ToastActivationType.Protocol
@@ -92,7 +91,7 @@ namespace PageDiscount
             new ToastContentBuilder()
                 .AddAppLogoOverride(new Uri(Path.GetFullPath(Messages.ToastImage)), ToastGenericAppLogoCrop.Default)
                 .AddText(Messages.ToastTitle)
-                .AddText($"{ticket.DepartureDate}-{ticket.Day} Fiyat: {ticket.PriceStr} TL")
+                .AddText($"{ticket.DepartureDate}{ticket.Day} Fiyat: {ticket.PriceStr} TL")
                 .AddAttributionText(ticket.DeparturePort + " to " + ticket.ArrivalPort)
                 .AddButton(button)
                 .Show();
