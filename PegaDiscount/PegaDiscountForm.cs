@@ -8,72 +8,76 @@ using System.IO;
 using PegaDiscount.Models;
 using PegaDiscount.Helpers;
 using System.Threading.Tasks;
-using System.Threading;
+using PegaDiscount.Utilities.Settings;
+using PegaDiscount.Service;
+using PegaDiscount.Utilities.Helpers;
 
 namespace PageDiscount
 {
     public partial class PegaDiscountForm : Form
     {
         private readonly WebDriverHelper _driverHelper;
-        private readonly AppSettingsModel _settingsModel;
-        private readonly string _url;
         private readonly List<TicketModel> _ticketModels;
+        private readonly ITicketService _ticketService;
+        private readonly ISettings _settings;
+        private readonly string _url;
 
         public PegaDiscountForm()
         {
             InitializeComponent();
             _driverHelper = new WebDriverHelper();
-            _settingsModel = new AppSettingsModel();
+            _settings = new AppSettings();
+            _ticketService = new TicketService(_settings);
             _ticketModels = new List<TicketModel>();
 
-            _url = $"https://web.flypgs.com/flexible-search?adultCount={_settingsModel.AdultCount}&arrivalPort={_settingsModel.ArrivalPort}&currency=TL&dateOption=1&departureDate={_settingsModel.DepartureDate}&departurePort={_settingsModel.DeparturePort}&language=tr";
+            TicketModel urlTicketModel = new TicketModel()
+            {
+                AdultCount = _settings.AdultCount,
+                ArrivalPort = _settings.ArrivalPort,
+                DepartureDate = _settings.DepartureDate,
+                DeparturePort = _settings.DeparturePort,
+            };
+
+            _url = PegaUrlHelper.CreateUrl(urlTicketModel);
+            Console.WriteLine(_url);
         }
 
         private void PegaDiscountForm_Load(object sender, EventArgs e)
         {
-            Task.Run(main);
+            main();
             //Thread.Sleep(_settingsModel.LoopTimeMinute * 60 * 1000);
         }
 
-        private async Task main()
+        private void main()
         {
             IWebDriver driver = _driverHelper.CreateNewWebDriver();
             driver.Navigate().GoToUrl(_url);
-            checkProperPrices(driver);
+            processCalendarTicketDays(driver);
         }
 
-        private void checkProperPrices(IWebDriver driver)
+        private void processCalendarTicketDays(IWebDriver driver)
         {
-            var calendarDays = driver.FindElements(By.CssSelector(".calendar-day-wrapper"));
-
+            var calendarDays = driver.FindElements(By.CssSelector("div.calendar-day-wrapper"));
 
             foreach (var day in calendarDays)
             {
-                var amountElement = day.FindElements(By.ClassName("amount")).FirstOrDefault();
-                var dayElement = day.FindElements(By.ClassName("day")).FirstOrDefault();
-                if (amountElement != null && dayElement != null)
+                var ticketAmount = day.FindElements(By.ClassName("amount")).FirstOrDefault();
+                var ticketDay = day.FindElements(By.ClassName("day")).FirstOrDefault();
+
+                
+
+                bool checkNullElements = ticketAmount != null && ticketDay != null;
+                bool isThereTicketModelInList = !_ticketModels.Any(tm => tm.Day == Convert.ToInt32(ticketDay.Text.Trim()));
+
+                if (isThereTicketModelInList && checkNullElements)
                 {
-                    if (!string.IsNullOrEmpty(amountElement.Text))
+                    
+
+                    var ticketModel = _ticketService.CreateTicketModel(ticketAmount.Text, ticketDay.Text);
+                    if (ticketModel != null)
                     {
-                        int ticketPrice = Convert.ToInt32(amountElement.Text.Replace(",", "").Trim());
-                        int ticketDay = Convert.ToInt32(dayElement.Text.Trim());
-
-                        if (_settingsModel.SelectedPrice >= ticketPrice)
-
-                        if (!_ticketModels.Any(tm => tm.Day == ticketDay))
-                        {
-                            var newTicketModel = new TicketModel()
-                            {
-                                Day = ticketDay,
-                                ArrivalPort = _settingsModel.ArrivalPort,
-                                DeparturePort = _settingsModel.DeparturePort,
-                                DepartureDate = _settingsModel.DepartureDate,
-                                AdultCount = _settingsModel.AdultCount,
-                                PriceStr = amountElement.Text
-                            };
-                            _ticketModels.Add(newTicketModel);
-                            showToastNotification(newTicketModel);
-                        }
+                        _ticketModels.Add(ticketModel);
+                        showToastNotification(ticketModel);
                     }
                 }
             }
@@ -81,16 +85,16 @@ namespace PageDiscount
 
         private void showToastNotification(TicketModel ticket)
         {
-            string newUrl = $"https://web.flypgs.com/booking?adultCount={ticket.AdultCount}&arrivalPort={ticket.ArrivalPort}&currency=TL&dateOption=1&departureDate={ticket.DepartureDate}-{ticket.Day}&departurePort={ticket.DeparturePort}&language=tr";
-
-            ToastButton button = new ToastButton("Tarayıcıda aç", newUrl)
+            string toastUrl = PegaUrlHelper.CreateUrl(ticket, false);
+            MessageBox.Show(toastUrl);
+            ToastButton button = new ToastButton(Messages.ToastButtonText, toastUrl)
             {
                 ActivationType = ToastActivationType.Protocol
             };
 
             new ToastContentBuilder()
-                .AddAppLogoOverride(new Uri(Path.GetFullPath("pegasus.png")), ToastGenericAppLogoCrop.Default)
-                .AddText("Uçak Biletinde Uygun Fiyat!")
+                .AddAppLogoOverride(new Uri(Path.GetFullPath(Messages.ToastImage)), ToastGenericAppLogoCrop.Default)
+                .AddText(Messages.ToastTitle)
                 .AddText($"{ticket.DepartureDate}-{ticket.Day} Fiyat: {ticket.PriceStr} TL")
                 .AddAttributionText(ticket.DeparturePort + " to " + ticket.ArrivalPort)
                 .AddButton(button)

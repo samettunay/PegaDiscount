@@ -2,9 +2,9 @@
 using System.Configuration;
 
 
-namespace PegaDiscount.Models
+namespace PegaDiscount.Utilities.Settings
 {
-    public class AppSettingsModel
+    public class AppSettings : ISettings
     {
         public string AdultCount { get; set; } = ConfigurationManager.AppSettings["adultCount"];
         public string DeparturePort { get; set; } = ConfigurationManager.AppSettings["departurePort"];
