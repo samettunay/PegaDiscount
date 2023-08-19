@@ -20,7 +20,7 @@ namespace PegaDiscount.Service
             if (!string.IsNullOrEmpty(amount) && !string.IsNullOrEmpty(day))
             {
                 int ticketPrice = Convert.ToInt32(amount.Replace(",", "").Trim());
-                int ticketDay = Convert.ToInt32(amount.Trim());
+                int ticketDay = Convert.ToInt32(day.Trim());
 
                 if (_settings.SelectedPrice >= ticketPrice)
                 {

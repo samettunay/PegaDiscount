@@ -71,8 +71,6 @@ namespace PageDiscount
 
                 if (isThereTicketModelInList && checkNullElements)
                 {
-                    
-
                     var ticketModel = _ticketService.CreateTicketModel(ticketAmount.Text, ticketDay.Text);
                     if (ticketModel != null)
                     {
@@ -86,7 +84,6 @@ namespace PageDiscount
         private void showToastNotification(TicketModel ticket)
         {
             string toastUrl = PegaUrlHelper.CreateUrl(ticket, false);
-            MessageBox.Show(toastUrl);
             ToastButton button = new ToastButton(Messages.ToastButtonText, toastUrl)
             {
                 ActivationType = ToastActivationType.Protocol
