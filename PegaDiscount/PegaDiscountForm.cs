@@ -27,8 +27,8 @@ namespace PageDiscount
             InitializeComponent();
             _driverHelper = new WebDriverHelper();
             _settings = new AppSettings();
-            _ticketService = new TicketService(_settings);
             _ticketModels = new List<TicketModel>();
+            _ticketService = new TicketService(_ticketModels);
 
             TicketModel urlTicketModel = new TicketModel()
             {
@@ -44,11 +44,11 @@ namespace PageDiscount
 
         private void PegaDiscountForm_Load(object sender, EventArgs e)
         {
-            main();
+            Task.Run(main);
             //Thread.Sleep(_settingsModel.LoopTimeMinute * 60 * 1000);
         }
 
-        private void main()
+        private async Task main()
         {
             IWebDriver driver = _driverHelper.CreateNewWebDriver();
             driver.Navigate().GoToUrl(_url);
@@ -65,22 +65,30 @@ namespace PageDiscount
                 var ticketDay = day.FindElements(By.ClassName("day")).FirstOrDefault();
 
                 bool checkNullElements = ticketAmount != null && ticketDay != null;
-                bool isThereTicketModelInList = !_ticketModels.Any(tm => tm.Day == Convert.ToInt32(ticketDay.Text.Trim()));
+                bool isTicketModelNotInList = !_ticketService.IsExists(ticketDay.Text);
 
-                if (isThereTicketModelInList && checkNullElements)
+                if (isTicketModelNotInList && checkNullElements)
                 {
-                    var ticketModel = _ticketService.CreateTicketModel(ticketAmount.Text, ticketDay.Text);
-                    if (ticketModel != null)
+                    var newTicketModel = new TicketModel()
                     {
-                        _ticketModels.Add(ticketModel);
-                        showToastNotification(ticketModel);
-                    }
+                        Day = ticketDay.Text,
+                        Price = ticketAmount.Text,
+                        DeparturePort = _settings.DeparturePort,
+                        ArrivalPort = _settings.ArrivalPort,
+                        AdultCount = _settings.AdultCount,
+                        DepartureDate = _settings.DepartureDate,
+                    };
+
+                    var addedTicket = _ticketService.Add(newTicketModel, _settings.SelectedPrice);
+                    showToastNotification(addedTicket);
                 }
             }
         }
 
         private void showToastNotification(TicketModel ticket)
         {
+            if (ticket == null) { return; }
+
             string toastUrl = PegaUrlHelper.CreateUrl(ticket, false);
 
             ToastButton button = new ToastButton(Messages.ToastButtonText, toastUrl)
@@ -91,7 +99,7 @@ namespace PageDiscount
             new ToastContentBuilder()
                 .AddAppLogoOverride(new Uri(Path.GetFullPath(Messages.ToastImage)), ToastGenericAppLogoCrop.Default)
                 .AddText(Messages.ToastTitle)
-                .AddText($"{ticket.DepartureDate}{ticket.Day} Fiyat: {ticket.PriceStr} TL")
+                .AddText($"{ticket.DepartureDate}{ticket.Day} Fiyat: {ticket.Price} TL")
                 .AddAttributionText(ticket.DeparturePort + " to " + ticket.ArrivalPort)
                 .AddButton(button)
                 .Show();

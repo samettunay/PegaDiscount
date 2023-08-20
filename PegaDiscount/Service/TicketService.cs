@@ -1,43 +1,50 @@
 ﻿using PegaDiscount.Models;
+using PegaDiscount.Utilities.Extensions;
 using PegaDiscount.Utilities.Settings;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Windows.UI.Xaml.Automation;
 
 namespace PegaDiscount.Service
 {
     public class TicketService : ITicketService
     {
-        private readonly ISettings _settings;
+        private readonly IList<TicketModel> _ticketModels;
 
-        public TicketService(ISettings settings)
+        public TicketService(IList<TicketModel> ticketModels)
         {
-            _settings = settings;
+            _ticketModels = ticketModels;
         }
 
-        public TicketModel CreateTicketModel(string amount, string day)
+        public IEnumerable<TicketModel> GetTicketModels() 
         {
-            if (!string.IsNullOrEmpty(amount) && !string.IsNullOrEmpty(day))
+            return _ticketModels;
+        }
+
+        public TicketModel Add(TicketModel ticket, int selectedPrice)
+        {
+            if (string.IsNullOrEmpty(ticket.Price) && string.IsNullOrEmpty(ticket.Day))
             {
-                int ticketPrice = Convert.ToInt32(amount.Replace(",", "").Trim());
-                int ticketDay = Convert.ToInt32(day.Trim());
-
-                if (_settings.SelectedPrice >= ticketPrice)
-                {
-                    var newTicketModel = new TicketModel()
-                    {
-                        Day = ticketDay,
-                        ArrivalPort = _settings.ArrivalPort,
-                        DeparturePort = _settings.DeparturePort,
-                        DepartureDate = _settings.DepartureDate,
-                        AdultCount = _settings.AdultCount,
-                        PriceStr = amount
-                    };
-
-                    return newTicketModel;
-                }
+                return null;
             }
-            return null;
+
+            var price = ticket.Price.Replace(",", "").Trim().ToInt32();
+            ticket.Day = ticket.Day.Trim();
+
+            if (selectedPrice <= price)
+            {
+                return null;
+            }
+
+            _ticketModels.Add(ticket);
+            return ticket;
+        }
+
+        public bool IsExists(string ticketDay)
+        {
+            return _ticketModels.Any(tm => tm.Day == ticketDay.Trim());
         }
     }
 }

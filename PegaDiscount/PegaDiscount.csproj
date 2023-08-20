@@ -51,6 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Utilities\Extensions\ConvertExtension.cs" />
     <Compile Include="Utilities\Helpers\PegaUrlHelper.cs" />
     <Compile Include="Utilities\Helpers\WebDriverHelper.cs" />
     <Compile Include="Service\ITicketService.cs" />

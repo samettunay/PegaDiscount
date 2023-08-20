@@ -9,6 +9,7 @@ namespace PegaDiscount.Service
 {
     public interface ITicketService
     {
-        TicketModel CreateTicketModel(string amount, string day);
+        TicketModel Add(TicketModel ticket, int selectedPrice);
+        bool IsExists(string ticketDay);
     }
 }
