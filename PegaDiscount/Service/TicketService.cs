@@ -1,5 +1,6 @@
 ﻿using PegaDiscount.Models;
 using PegaDiscount.Utilities.Extensions;
+using PegaDiscount.Utilities.Loggers;
 using PegaDiscount.Utilities.Settings;
 using System;
 using System.Collections.Generic;
@@ -12,10 +13,12 @@ namespace PegaDiscount.Service
     public class TicketService : ITicketService
     {
         private readonly IList<TicketModel> _ticketModels;
+        private readonly ILogger _logger;
 
-        public TicketService(IList<TicketModel> ticketModels)
+        public TicketService(IList<TicketModel> ticketModels, ILogger logger)
         {
             _ticketModels = ticketModels;
+            _logger = logger;
         }
 
         public IEnumerable<TicketModel> GetTicketModels() 
@@ -35,6 +38,7 @@ namespace PegaDiscount.Service
 
             if (selectedPrice <= price)
             {
+                _logger.WriteLog($"{Messages.PriceNotFound} Fiyat: {price}");
                 return null;
             }
 

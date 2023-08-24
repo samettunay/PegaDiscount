@@ -11,48 +11,79 @@ using System.Threading.Tasks;
 using PegaDiscount.Utilities.Settings;
 using PegaDiscount.Service;
 using PegaDiscount.Utilities.Helpers;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PegaDiscount.Utilities.Extensions;
+using PegaDiscount.Utilities.Loggers;
+using System.Threading;
 
 namespace PageDiscount
 {
     public partial class PegaDiscountForm : Form
     {
+        private readonly ITicketService _ticketService;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger _logger;
         private readonly WebDriverHelper _driverHelper;
         private readonly List<TicketModel> _ticketModels;
-        private readonly ITicketService _ticketService;
-        private readonly ISettings _settings;
+        private readonly AppSettings _settings;
+        private bool isRunButtonClicked = false;
         private readonly string _url;
 
         public PegaDiscountForm()
         {
             InitializeComponent();
+
+            _configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetParent(AppContext.BaseDirectory).FullName)
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            _logger = new TxtLogger();
             _driverHelper = new WebDriverHelper();
-            _settings = new AppSettings();
+            _settings = new AppSettings(_configuration);
             _ticketModels = new List<TicketModel>();
-            _ticketService = new TicketService(_ticketModels);
+            _ticketService = new TicketService(_ticketModels, _logger);
+
+            this.Resize += PegaDiscountForm_Resize;
 
             TicketModel urlTicketModel = new TicketModel()
             {
                 AdultCount = _settings.AdultCount,
+                DeparturePort = _settings.DeparturePort,
                 ArrivalPort = _settings.ArrivalPort,
                 DepartureDate = _settings.DepartureDate,
-                DeparturePort = _settings.DeparturePort,
             };
 
             _url = PegaUrlHelper.CreateUrl(urlTicketModel);
-            Console.WriteLine(_url);
         }
 
         private void PegaDiscountForm_Load(object sender, EventArgs e)
         {
-            Task.Run(main);
-            //Thread.Sleep(_settingsModel.LoopTimeMinute * 60 * 1000);
+            adultCountTextBox.Text = _settings.AdultCount;
+            departurePortTextBox.Text = _settings.DeparturePort;
+            arrivalPortTextBox.Text = _settings.ArrivalPort;
+            departureDateTextBox.Text = _settings.DepartureDate;
+            selectedPriceTextBox.Text = _settings.SelectedPrice;
+            loopTimeTextbox.Text = _settings.LoopTimeMinute;
+            notifyIcon1.Icon = new System.Drawing.Icon("pegasus.ico");
         }
 
         private async Task main()
         {
-            IWebDriver driver = _driverHelper.CreateNewWebDriver();
-            driver.Navigate().GoToUrl(_url);
-            processCalendarTicketDays(driver);
+            try
+            {
+                _logger.WriteLog(Messages.AppStarting);
+                IWebDriver driver = _driverHelper.CreateNewWebDriver();
+                driver.Navigate().GoToUrl(_url);
+                processCalendarTicketDays(driver);
+                await Task.Delay(_settings.LoopTimeMinute.ToInt32() * 60 * 1000);
+            }
+            catch (Exception ex)
+            {
+
+                _logger.WriteLog(ex.Message);
+            }
         }
 
         private void processCalendarTicketDays(IWebDriver driver)
@@ -79,10 +110,11 @@ namespace PageDiscount
                         DepartureDate = _settings.DepartureDate,
                     };
 
-                    var addedTicket = _ticketService.Add(newTicketModel, _settings.SelectedPrice);
+                    var addedTicket = _ticketService.Add(newTicketModel, _settings.SelectedPrice.ToInt32());
                     showToastNotification(addedTicket);
                 }
             }
+            driver.Quit();
         }
 
         private void showToastNotification(TicketModel ticket)
@@ -105,9 +137,39 @@ namespace PageDiscount
                 .Show();
         }
 
+        private async void runButton_Click(object sender, EventArgs e)
+        {
+
+            runButton.Enabled = false;
+            stopButton.Enabled = true;
+
+            while (!runButton.Enabled)
+            {
+                await Task.Run(main);
+            }
+        }
+
+        private void stopButton_Click(object sender, EventArgs e)
+        {
+            runButton.Enabled = true;
+            stopButton.Enabled = false;
+        }
+
+        private void PegaDiscountForm_Resize(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                this.Hide();
+            }
+        }
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Show();
         }
     }
 }
